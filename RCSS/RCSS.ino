@@ -1,32 +1,46 @@
+/*
 
+Copyright (c) 2012-2014 RedBearLab
 
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+*/
+
+/*
+ *    HelloWorld
+ *
+ *    HelloWorld sketch, work with the Chat iOS/Android App.
+ *    It will send "Hello World" string to the App every 1 sec.
+ *
+ */
 
 //"RBL_nRF8001.h/spi.h/boards.h" is needed in every new project
-#include <boards.h>
-#include <string.h>
-#include <Adafruit_BME280.h>
-#include <RBL_nRF8001.h>
-#include <RBL_services.h>
 #include <SPI.h>
-#include <EddystoneBeacon.h>
+#include <EEPROM.h>
+#include <boards.h>
+#include <RBL_nRF8001.h>
+#include <Adafruit_BME280.h>
 
 Adafruit_BME280 bme;
 
-#define EDDYSTONE_BEACON_REQ   6
-#define EDDYSTONE_BEACON_RDY   7
-#define EDDYSTONE_BEACON_RST   4
-
-EddystoneBeacon eddystoneBeacon = EddystoneBeacon(EDDYSTONE_BEACON_REQ, EDDYSTONE_BEACON_RDY, EDDYSTONE_BEACON_RST);
-
-void setup() {
-  Serial.begin(9600);
-  delay(1000);
-  ble_begin();
+void setup()
+{
+  ble_begin();  
   bme.begin();
-  eddystoneBeacon.setLocalName("test");
+  // Enable serial debug
+  Serial.begin(57600);
 }
 
-void loop() {
+unsigned char buf[16] = {0};
+unsigned char len = 0;
+
+void loop()
+{
+  if(ble_connected()){
     // degree celsius
     float temperature = bme.readTemperature();
     // % relative humidity
@@ -39,7 +53,7 @@ void loop() {
     float combustibleGases = (float) analogRead(A1)/1024*5.0; //mq2
     // voltage (no useable value without threshold)
     float airQuality = (float) analogRead(A2)/1024*5.0; //mq-135
-
+    
     char sConcentrationGases[10];
     char sCombustibleGases[10];
     char sAirQuality[10];
@@ -47,26 +61,19 @@ void loop() {
     dtostrf(concentrationGases, 1, 6, sConcentrationGases);
     dtostrf(combustibleGases, 1, 6, sCombustibleGases);
     dtostrf(airQuality, 1, 6, sAirQuality);
+    
+    String string = "§" + String(temperature) + "|" + String(humidity) + "|" + String(pressure) + "|" + String(sConcentrationGases) + "|" + String(sCombustibleGases) + "|" + String(sAirQuality) + "°";
 
-    String json = "{\"version\":\"1.0.0\",\"sensors\":{\"temperature\":" + String(temperature) +
-                  ",\"humidity\":" + String(humidity) +
-                  ",\"pressure\":" + String(pressure) +
-                  ",\"concentrationGases\":" + String(sConcentrationGases) +
-                  ",\"combustibleGases\":" + String(sCombustibleGases) + 
-                  ",\"airQuality\":" + String(sAirQuality) + 
-                  "}}";
+    for(char& c : string){
+      ble_write(c);
+    }
 
-    Serial.println(json);                  
-//    for(char& c : json){
-//      ble_write(c);
-//    }
-//  
-//
-//  ble_do_events();
+    
+  }
 
-  eddystoneBeacon.begin(-18, "{\"sensors\":{\"temp\":\"21\"}}"); // power, URI
-  eddystoneBeacon.loop();
+  ble_do_events();
+
   // delay so the arduino doesnt burn
-  delay(3000);
+  delay(500);
 }
 
