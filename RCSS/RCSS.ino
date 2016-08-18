@@ -62,7 +62,7 @@ void loop()
     dtostrf(combustibleGases, 1, 6, sCombustibleGases);
     dtostrf(airQuality, 1, 6, sAirQuality);
     
-    String string = "§" + String(temperature) + "|" + String(humidity) + "|" + String(pressure) + "|" + String(sConcentrationGases) + "|" + String(sCombustibleGases) + "|" + String(sAirQuality) + "°";
+    String string = "[" + String(temperature) + "|" + String(humidity) + "|" + String(pressure) + "|" + String(sConcentrationGases) + "|" + String(sCombustibleGases) + "|" + String(sAirQuality) + "]";
 
     for(char& c : string){
       ble_write(c);
